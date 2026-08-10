@@ -1,0 +1,51 @@
+
+/* tsconfig.json es el archivo donde le dices a TypeScript cómo debe entender y analizar tu proyecto.
+
+No es un archivo de Playwright específicamente. Es de TypeScript, pero como tu proyecto Playwright está escrito en TypeScript, Playwright se beneficia de esta configuración.
+
+Piensa en él como las reglas de TypeScript para tu proyecto. */
+
+
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "lib": ["ESNext", "DOM"],
+      "moduleDetection": "force",
+      "baseUrl": ".",
+      "module": "ESNext",
+      "moduleResolution": "bundler",
+      
+      // paths en lugar de escribir esto import { LoginPage } from "../../../components/ui/LoginPage";
+      "paths": { //Esto básicamente crea alias para las carpetas de tu proyecto.
+        "@/*": ["./*"], // Es decir, @/ representa la raíz del proyecto.  @/algo
+        "@ui/*": ["./tests/components/ui/*"],  //@ui/* → alias específico → tests/components/ui/. EL * significa cualquier nombre que venga después
+        "@api/*": ["./tests/components/api/*"],
+        "@utils/*": ["./tests/utils/*"],
+        "@data/*": ["./tests/data/*"],
+        "@DataFactory": ["./tests/data/DataFactory.ts"],
+      },
+      "resolveJsonModule": true,
+      "types": ["bun", "node", "@playwright/test"],
+      "allowImportingTsExtensions": true,
+      "allowJs": true,
+      "strict": true,
+      "noFallthroughCasesInSwitch": true,
+      "noUnusedLocals": false,
+      "noUnusedParameters": false,
+      "noEmit": true,
+      "sourceMap": true,
+      "esModuleInterop": true,
+      "verbatimModuleSyntax": false,
+      "skipLibCheck": true
+    },
+    "include": ["**/*.ts", "playwright.config.ts", "eslint.config.js"],
+    "exclude": [
+      "node_modules",
+      "playwright-report",
+      "test-results",
+      "allure-results",
+      "allure-report",
+      "reports"
+    ]
+  }
+  
