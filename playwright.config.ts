@@ -1,79 +1,89 @@
+
+
 import { defineConfig, devices } from '@playwright/test';
+import{config} from '@variables'
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+/* No todo va dentro de use.
+Las opciones que controlan cómo se ejecutan los tests van directamente en defineConfig().
+Las opciones que configuran el contexto/navegador y las acciones del test van dentro de use.
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
+La regla mental
+
+defineConfig → cómo corre el Test Runner.
+
+use → cómo se comporta/configura el navegador y el contexto durante el test.
+
+*/
+
+
 export default defineConfig({
   testDir: './tests',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    // baseURL: 'http://localhost:3000',
+  testMatch: /.*\.test\.ts/,
+  // Exclude example files - they are reference templates, not functional tests
+  testIgnore: ['**/module-example/**'],
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+  fullyParallel: false,
+  retries: 0, // intentos de ejecucion d eun test si falla 
+
+  // Single worker for now - increase when tests are stable and parallelizable
+  workers: 1, //Controla cuántos procesos worker puede utilizar Playwright para ejecutar tests en paralelo.
+
+  timeout: 60000, // Es el timeout máximo de cada test.
+  expect: {  // Cada expect puede esperar hasta 10 segundos para que la condición esperada se cumpla
+    timeout: 10000, 
   },
 
-  /* Configure projects for major browsers */
-  projects: [
+  reporter: [
+    ['html', {
+      outputFolder: 'test-results',
+      open: 'never',
+    }],
+  ],
+    // GitHub Reporter (optional): Generates annotations in GitHub Actions UI
+    // Uncomment to enable inline error annotations in PR file views
+    // Note: Not recommended with matrix strategies (errors multiply in UI)
+    // See: https://playwright.dev/docs/test-reporters#github-actions-annotations
+    // ...(env.isCI ? [['github'] as const] : []),
+  
+
+  use: {
+    baseURL: config.baseUrl,
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
+    viewport: { width: 1920, height: 1080 },
+    ignoreHTTPSErrors: true,
+   
+   
+  },
+
+  projects: [  //Permite ejecutar los tests bajo diferentes configuraciones.
+    
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'Login',
+      testMatch: /Login\.test\.ts/,
     },
 
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: 'ui-setup', // Proyecto que crea la sesión
+      testMatch: /ui-auth\.setup\.ts/,
+      testDir: './tests/setup'
     },
 
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: 'e2e',
+      testDir: './tests/e2e',
+      testMatch: /.*\.test\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user-state.json',
+      },
+      dependencies: ['ui-setup'],
     },
 
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  // Artifacts directory (add to .gitignore)
+  // Contains: screenshots, videos, traces, test results
+  outputDir: 'test-results',
 });
