@@ -1,0 +1,120 @@
+name: Regression Tests
+run-name: ${{ github.actor }} triggered Regression Tests on ${{ inputs.environment || 'staging' }}
+
+# ==========================================
+# 1. ON: eventos que disparan el pipeline
+# ==========================================
+on:
+  push:
+    branches: [master]           # en cada push a master
+
+  workflow_dispatch:             # boton "Run workflow" en la pestaña Actions (ejecucion manual)
+    inputs:
+      environment:
+        description: 'Select the Test Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:                 # solo entornos definidos en config/variables.ts (local no aplica en CI)
+          - staging
+
+      video_record:
+        description: 'Record video for every test (otherwise only on failure)'
+        required: true
+        default: false
+        type: boolean
+
+      generate_allure:
+        description: 'Generate Allure Report'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true       # una corrida nueva cancela la anterior de la misma rama
+
+permissions:
+  contents: read
+
+# ============================================
+# 2. GLOBAL ENVIRONMENT VARIABLES
+# ============================================
+env:
+  CI: true
+  TEST_ENV: ${{ inputs.environment || 'staging' }}
+  # en push no hay inputs: video desactivado y Allure activado por defecto
+  VIDEO: ${{ inputs.video_record && 'true' || 'false' }}
+  GENERATE_ALLURE: ${{ github.event_name == 'push' || inputs.generate_allure }}
+  BUILD_ID: ${{ github.run_id }}
+
+  # Staging credentials (si no existen los secrets se usa el usuario demo de config/variables.ts)
+  STAGING_USER_EMAIL: ${{ secrets.STAGING_USER_EMAIL }}
+  STAGING_USER_PASSWORD: ${{ secrets.STAGING_USER_PASSWORD }}
+
+# ============================================
+# 3. JOBS
+# ============================================
+jobs:
+  regression:
+    name: Regresion
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+
+      - name: Instalar navegador de Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Correr regresion
+        run: bunx playwright test
+
+      - name: Setup Java (requerido por Allure CLI)
+        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generar reporte Allure
+        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
+        run: npx --yes allure-commandline generate allure-results --clean --single-file -o allure-report
+
+      - name: Subir reporte Allure
+        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Subir reporte HTML de Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Subir videos, screenshots y traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7

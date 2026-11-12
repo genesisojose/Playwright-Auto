@@ -58,9 +58,11 @@ test.describe('Dashboard Invoce', () => {
 
   })
 
-  
-  
+
+
 })
+
+});
 
 
 /*No es regla explícita de este repo (no encontré nada en eslint.config.js sobre esto), es una regla de JS que aplica siempre.

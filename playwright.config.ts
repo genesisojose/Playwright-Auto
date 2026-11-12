@@ -34,10 +34,12 @@ export default defineConfig({
   },
 
   reporter: [
+    ['list'],
     ['html', {
-      outputFolder: 'test-results',
+      outputFolder: 'playwright-report',
       open: 'never',
     }],
+    ['allure-playwright', { resultsDir: 'allure-results' }],
   ],
     // GitHub Reporter (optional): Generates annotations in GitHub Actions UI
     // Uncomment to enable inline error annotations in PR file views
@@ -49,7 +51,7 @@ export default defineConfig({
   use: {
     baseURL: config.baseUrl,
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: config.recordVideo ? 'on' : 'retain-on-failure',
     trace: 'retain-on-failure',
     viewport: { width: 1920, height: 1080 },
     ignoreHTTPSErrors: true,

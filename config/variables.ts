@@ -35,13 +35,14 @@ export type Environment = 'local' | 'staging'; // Add more when needed (e.g., 'p
     // === Test User Credentials (only current TEST_ENV required) ===
     LOCAL_USER_EMAIL, // Required if TEST_ENV=local
     LOCAL_USER_PASSWORD, // Required if TEST_ENV=local
-    STAGING_USER_EMAIL ='demo@soloq.app', // Required if TEST_ENV=staging
-    STAGING_USER_PASSWORD='Demo123!', // Required if TEST_ENV=staging
-  
+    STAGING_USER_EMAIL, // Required if TEST_ENV=staging
+    STAGING_USER_PASSWORD, // Required if TEST_ENV=staging
+
 
     // === Browser Configuration ===
     HEADLESS = 'true', // Used: config.browser.headless (playwright.config)
     DEFAULT_TIMEOUT = '30000', // Used: config.browser.defaultTimeout (playwright.config, ApiBase)
+    VIDEO = 'false', // Used: config.recordVideo (playwright.config). 'true' records every test
   
   } = process.env;
   
@@ -68,9 +69,10 @@ const userCredentialsMap: Record<Environment, { email: string, password: string 
     email: LOCAL_USER_EMAIL ?? '',
     password: LOCAL_USER_PASSWORD ?? '',
   },
+  // `||` instead of `??`: an unset GitHub secret arrives as an empty string, not undefined
   staging: {
-    email: STAGING_USER_EMAIL ?? '',
-    password: STAGING_USER_PASSWORD ?? '',
+    email: STAGING_USER_EMAIL || 'demo@soloq.app',
+    password: STAGING_USER_PASSWORD || 'Demo123!',
   },
 };
 
@@ -104,7 +106,10 @@ export const config = {
   baseUrl: envData.base,
   apiUrl: envData.api,
 
-  // Authentication config 
+  // Record video for every test (CI input `video_record`), otherwise only on failure
+  recordVideo: VIDEO === 'true',
+
+  // Authentication config
   auth: {
     //loginEndpoint: '/auth/login',
     tokenEndpoint: '/v1/token?grant_type=password', // Endpoint to intercept for token (used by page.waitForResponse)
