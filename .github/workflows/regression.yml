@@ -126,7 +126,9 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
       - name: Generar reporte Allure
         if: ${{ !cancelled() }} # condicion para ver si se ejecuta este caso, si el flujo no fue cancelado
-        run: bunx allure-commandline generate allure-results --clean --single-file -o allure-report
+        env:
+          ALLURE_SINGLE_FILE: 'true' # un solo index.html, fácil de abrir al descargar el artifact
+        run: bunx allure generate allure-results --clean # Allure 3, configurado en allurerc.mjs (salida: allure-report/)
         ##agarra los datos “crudos” que dejaron los tests y los convierte en un reporte lindo y fácil de leer, en un solo archivo HTML.
 
       - name: Subir reporte Allure
@@ -191,11 +193,22 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
     steps:
+      - name: Checkout (allurerc.mjs + dependencias)
+        uses: actions/checkout@v7
+
       - name: Checkout gh-pages (reportes anteriores)
         uses: actions/checkout@v7
         with:
           ref: gh-pages
           path: gh-pages
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Instalar dependencias (Allure 3)
+        run: bun install --frozen-lockfile
 
       - name: Calcular número de reporte
         id: report-number
@@ -212,28 +225,16 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           name: allure-results
           path: allure-results
 
-      - name: Agregar historial y datos de la corrida
+      - name: Generar reporte Allure 3 con historial
+        env:
+          # trend history lives in gh-pages; Allure appends this run to it (see allurerc.mjs)
+          ALLURE_HISTORY_PATH: gh-pages/${{ env.SUITE }}/history.jsonl
         run: |
-          # history = trend data from previous reports (feeds the "Trend" charts)
-          if [ -d "gh-pages/${SUITE}/last-history" ]; then
-            cp -r "gh-pages/${SUITE}/last-history" allure-results/history
-          fi
-          # executor = links each point of the trend to its own report
-          cat > allure-results/executor.json <<EOF
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "buildName": "Report #${REPORT_NUMBER}",
-            "buildOrder": ${REPORT_NUMBER},
-            "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportUrl": "${PAGES_URL}/${SUITE}/${REPORT_NUMBER}/"
-          }
-          EOF
+          bunx allure generate allure-results --clean \
+            -o "gh-pages/${SUITE}/${REPORT_NUMBER}" \
+            --name "${SUITE} - Report #${REPORT_NUMBER}"
 
-      - name: Generar reporte Allure con historial
-        run: npx --yes allure-commandline generate allure-results --clean -o "gh-pages/${SUITE}/${REPORT_NUMBER}"
-
-      - name: Actualizar historial, índice y limpiar reportes viejos
+      - name: Actualizar índice y limpiar reportes viejos
         working-directory: gh-pages
         run: |
           cd "${SUITE}"
@@ -241,9 +242,8 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           # save the counter for the next run
           echo "${REPORT_NUMBER}" > last-report-number
 
-          # keep the trend data for the next run
+          # Allure 2 trend folder is no longer used (Allure 3 uses history.jsonl)
           rm -rf last-history
-          cp -r "${REPORT_NUMBER}/history" last-history
 
           # /<SUITE>/ redirects to the suite's latest report
           cat > index.html <<EOF
@@ -283,3 +283,19 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Publicar en GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v5
+
+      - name: Resumen de la corrida
+        env:
+          TESTS_RESULT: ${{ needs.regression.result }}
+        run: |
+          if [ "$TESTS_RESULT" = "success" ]; then status="✅ Passed"; else status="❌ ${TESTS_RESULT}"; fi
+          {
+            echo "## Allure Report - ${SUITE} #${REPORT_NUMBER}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Tests** | ${status} |"
+            echo "| **Environment** | ${TEST_ENV} |"
+            echo "| **Report** | ${PAGES_URL}/${SUITE}/${REPORT_NUMBER}/ |"
+            echo "| **Latest** | ${PAGES_URL}/${SUITE}/ |"
+          } >> "$GITHUB_STEP_SUMMARY"
