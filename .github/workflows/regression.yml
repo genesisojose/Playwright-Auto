@@ -167,7 +167,8 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
   # ============================================
   # Job 2: publish the Allure report to GitHub Pages with history
-  #   - the gh-pages branch stores every published report: /<SUITE>/<run_number>/
+  #   - the gh-pages branch stores every published report: /<SUITE>/<report_number>/
+  #   - report_number is a per-suite counter (1, 2, 3...) saved in /<SUITE>/last-report-number
   #   - /<SUITE>/ redirects to that suite's latest report
   #   - only the last KEEP_REPORTS reports per suite are kept
   # ============================================
@@ -183,11 +184,10 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       id-token: write   # verify the deployment origin
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}regression/${{ github.run_number }}/
+      url: ${{ steps.deploy.outputs.page_url }}regression/${{ steps.report-number.outputs.value }}/
     env:
       SUITE: regression  # folder inside gh-pages for this pipeline's reports
       KEEP_REPORTS: 20
-      RUN_NUMBER: ${{ github.run_number }}
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
     steps:
@@ -196,6 +196,15 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
         with:
           ref: gh-pages
           path: gh-pages
+
+      - name: Calcular número de reporte
+        id: report-number
+        run: |
+          # own counter per suite: starts at 1, independent of GitHub's run_number
+          last=$(cat "gh-pages/${SUITE}/last-report-number" 2>/dev/null || echo 0)
+          next=$((last + 1))
+          echo "REPORT_NUMBER=${next}" >> "$GITHUB_ENV"
+          echo "value=${next}" >> "$GITHUB_OUTPUT"
 
       - name: Descargar resultados crudos de Allure
         uses: actions/download-artifact@v8
@@ -214,32 +223,35 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           {
             "name": "GitHub Actions",
             "type": "github",
-            "buildName": "Run #${RUN_NUMBER}",
-            "buildOrder": ${RUN_NUMBER},
+            "buildName": "Report #${REPORT_NUMBER}",
+            "buildOrder": ${REPORT_NUMBER},
             "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportUrl": "${PAGES_URL}/${SUITE}/${RUN_NUMBER}/"
+            "reportUrl": "${PAGES_URL}/${SUITE}/${REPORT_NUMBER}/"
           }
           EOF
 
       - name: Generar reporte Allure con historial
-        run: npx --yes allure-commandline generate allure-results --clean -o "gh-pages/${SUITE}/${RUN_NUMBER}"
+        run: npx --yes allure-commandline generate allure-results --clean -o "gh-pages/${SUITE}/${REPORT_NUMBER}"
 
       - name: Actualizar historial, índice y limpiar reportes viejos
         working-directory: gh-pages
         run: |
           cd "${SUITE}"
 
+          # save the counter for the next run
+          echo "${REPORT_NUMBER}" > last-report-number
+
           # keep the trend data for the next run
           rm -rf last-history
-          cp -r "${RUN_NUMBER}/history" last-history
+          cp -r "${REPORT_NUMBER}/history" last-history
 
           # /<SUITE>/ redirects to the suite's latest report
           cat > index.html <<EOF
           <!doctype html>
           <meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./${RUN_NUMBER}/">
+          <meta http-equiv="refresh" content="0; url=./${REPORT_NUMBER}/">
           <title>Allure Report - ${SUITE}</title>
-          <a href="./${RUN_NUMBER}/">Latest ${SUITE} report (run #${RUN_NUMBER})</a>
+          <a href="./${REPORT_NUMBER}/">Latest ${SUITE} report (run #${REPORT_NUMBER})</a>
           EOF
 
           # delete the oldest reports of this suite, keep the last KEEP_REPORTS
@@ -260,7 +272,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "report: allure ${SUITE} run #${RUN_NUMBER}"
+          git commit -m "report: allure ${SUITE} run #${REPORT_NUMBER}"
           git push origin gh-pages
 
       - name: Preparar sitio para Pages
