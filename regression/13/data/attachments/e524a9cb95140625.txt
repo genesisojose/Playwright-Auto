@@ -1,9 +1,0 @@
-[UI Setup] Starting UI authentication...
-[UI Setup] Target: /login
-[UI Setup] Intercepting token from login response...
-[UI Setup] UI login successful
-[UI Setup] Token intercepted successfully
-[UI Setup] Storage state saved to playwright/.auth/user-state.json
-[UI Setup] API token saved to playwright/.auth/api-state.json
-[UI Setup] Authentication successful
-[UI Setup] Current URL: https://staging-upexsoloq.vercel.app/login
