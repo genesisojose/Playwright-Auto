@@ -2,8 +2,11 @@
   "name": "practica-auto",
   "version": "1.0.0",
   "description": "",
+  "scripts": {
+    "pw:install": "playwright install --with-deps chromium",  
+    "test:regression": "bunx playwright test --project=e2e --grep @regression"
+  },
   "main": "index.js",
-  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -114,7 +114,7 @@ export const config = {
     //loginEndpoint: '/auth/login',
     tokenEndpoint: '/v1/token?grant_type=password', // Endpoint to intercept for token (used by page.waitForResponse)
     // Storage paths for authenticated sessions
-    storageStatePath: 'playwright/.auth/user.json',
+    storageStatePath: 'playwright/.auth/user-state.json',
     apiStatePath: 'playwright/.auth/api-state.json',
   },
 

@@ -7,46 +7,45 @@ Piensa en él como las reglas de TypeScript para tu proyecto. */
 
 
 {
-    "compilerOptions": {
-      "target": "ESNext",
-      "lib": ["ESNext", "DOM"],
-      "moduleDetection": "force",
-      "baseUrl": ".",
-      "module": "ESNext",
-      "moduleResolution": "bundler",
-      
-      // paths en lugar de escribir esto import { LoginPage } from "../../../components/ui/LoginPage";
-      "paths": { //Esto básicamente crea alias para las carpetas de tu proyecto.
-        "@/*": ["./*"], // Es decir, @/ representa la raíz del proyecto.  @/algo
-        "@ui/*": ["components/ui/*"],  //@ui/* → alias específico → tests/components/ui/. EL * significa cualquier nombre que venga después
-        "@api/*": ["components/api/*"],
-        "@utils/*": ["./tests/utils/*"],
-        "@data/*": ["data/*"],
-        "@DataFactory": ["data/DataFactory.ts"],
-        "@variables": ["./config/variables.ts"],
-      },
-      "resolveJsonModule": true,
-      "types": ["bun", "node", "@playwright/test"],
-      "allowImportingTsExtensions": true,
-      "allowJs": true,
-      "strict": true,
-      "noFallthroughCasesInSwitch": true,
-      "noUnusedLocals": false,
-      "noUnusedParameters": false,
-      "noEmit": true,
-      "sourceMap": true,
-      "esModuleInterop": true,
-      "verbatimModuleSyntax": false,
-      "skipLibCheck": true
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    
+    // paths en lugar de escribir esto import { LoginPage } from "../../../components/ui/LoginPage";
+    "paths": { //Esto básicamente crea alias para las carpetas de tu proyecto.
+      "@/*": ["./*"], // Es decir, @/ representa la raíz del proyecto.  @/algo
+      "@ui/*": ["components/ui/*"],  //@ui/* → alias específico → tests/components/ui/. EL * significa cualquier nombre que venga después
+      "@api/*": ["components/api/*"],
+      "@utils/*": ["./tests/utils/*"],
+      "@data/*": ["data/*"],
+      "@DataFactory": ["data/DataFactory.ts"],
+      "@variables": ["./config/variables.ts"],
     },
-    "include": ["**/*.ts", "playwright.config.ts", "eslint.config.js"],
-    "exclude": [
-      "node_modules",
-      "playwright-report",
-      "test-results",
-      "allure-results",
-      "allure-report",
-      "reports"
-    ]
-  }
-  
+    "resolveJsonModule": true,
+    "types": ["bun", "node", "@playwright/test"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noEmit": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": false,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts", "playwright.config.ts", "eslint.config.js"],
+  "exclude": [
+    "node_modules",
+    "playwright-report",
+    "test-results",
+    "allure-results",
+    "allure-report",
+    "reports"
+  ]
+}

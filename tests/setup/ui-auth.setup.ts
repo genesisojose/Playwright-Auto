@@ -55,20 +55,26 @@ setup('UI Setup: authenticate via UI', async ({ LoginPage, page }) => {
 
   // Set up response interception BEFORE triggering login
   // The login UI calls /api/auth/login after successful NextAuth sign-in
-  const tokenPromise =  page.waitForResponse(
+  // Match any status so a rejected login fails fast with a clear message instead of a 30s timeout
+  const tokenPromise = page.waitForResponse(
     resp => resp.url().includes(config.auth.tokenEndpoint)
-      && resp.request().method() === 'POST'
-      && resp.status() === 200,
+      && resp.request().method() === 'POST',
     { timeout: 30000 },
   );
 
   // Use LoginPage ATC - triggers NextAuth sign-in + token fetch
   await LoginPage.loginSuccessfully(config.testUser);
-  console.log('[UI Setup] UI login successful');
 
   // Capture JWT token from intercepted response
   console.log('[UI Setup] Intercepting token from login response...');
   const response = await tokenPromise;
+  if (response.status() !== 200) {
+    throw new Error(
+      `Login rejected for ${config.testUser.email} (HTTP ${response.status()}): ${await response.text()}. `
+      + 'Check the credentials for the current TEST_ENV (in CI: STAGING_USER_EMAIL / STAGING_USER_PASSWORD secrets).',
+    );
+  }
+  console.log('[UI Setup] UI login successful');
   const tokenData = (await response.json()) as TokenResponse;
 
 

@@ -1,100 +1,138 @@
 name: Regression Tests
-run-name: ${{ github.actor }} triggered Regression Tests on ${{ inputs.environment || 'staging' }}
+run-name: ${{ github.actor }} triggered Regression Tests on ${{ github.event.inputs.environment || 'staging' }}
+
+
 
 # ==========================================
-# 1. ON: eventos que disparan el pipeline
+# 2. ON: eventos que disparan el pipeline
 # ==========================================
 on:
-  push:
-    branches: [master]           # en cada push a master
 
-  workflow_dispatch:             # boton "Run workflow" en la pestaña Actions (ejecucion manual)
-    inputs:
-      environment:
-        description: 'Select the Test Environment'
-        required: true
+  push:
+    branches: [main]           # en cada push a main
+
+
+  workflow_dispatch:           # boton "Run workflow" en la pestaña Actions
+  # Ejecución manual puede quedar vacío. Así ya alcanza para que aparezca el botón “Run workflow” en la pestaña Actions y puedas lanzar el pipeline a mano.
+  #Adentro, lo único que se pone (y es opcional) son inputs: parámetros que se piden al ejecutarlo manualmente.
+
+
+    # cada input se convierte en un control del formulario
+    #Sí. Todo lo que está dentro de workflow_dispatch (los inputs) solo se usa cuando lo ejecutás a mano desde el botón Run workflow, o por la API o gh workflow run.
+    inputs: #Define los datos que puede recibir el pipeline.
+      environment: #Nombre del primer parámetro.
+        description: 'Select the Test Environment' #Descripción que verá quien ejecuta el pipeline.
         default: 'staging'
-        type: choice
-        options:                 # solo entornos definidos en config/variables.ts (local no aplica en CI)
+        required: true  #Indica si es obligatorio completar el parámetro.
+        type: choice   #Define el tipo de dato o control.
+        options:  #Define las opciones disponibles.
           - staging
+          - production
 
       video_record:
-        description: 'Record video for every test (otherwise only on failure)'
+        description: Enable Video Recording
         required: true
         default: false
         type: boolean
 
       generate_allure:
-        description: 'Generate Allure Report'
+        description: Generate Allure Report
         required: true
         default: true
         type: boolean
 
+      custom_allure_url:
+        description: Custom Allure Report Endpoint
+        required: false
+        default: 'sanity'
+        type: string
+
+
+
+#
 concurrency:
   group: regression-${{ github.ref }}
-  cancel-in-progress: true       # una corrida nueva cancela la anterior de la misma rama
+  cancel-in-progress: true     # una corrida nueva cancela la anterior de la misma rama
 
+
+#
 permissions:
   contents: read
 
-# ============================================
-# 2. GLOBAL ENVIRONMENT VARIABLES
-# ============================================
-env:
-  CI: true
-  TEST_ENV: ${{ inputs.environment || 'staging' }}
-  # en push no hay inputs: video desactivado y Allure activado por defecto
-  VIDEO: ${{ inputs.video_record && 'true' || 'false' }}
-  GENERATE_ALLURE: ${{ github.event_name == 'push' || inputs.generate_allure }}
-  BUILD_ID: ${{ github.run_id }}
 
-  # Staging credentials (si no existen los secrets se usa el usuario demo de config/variables.ts)
+# ============================================
+# 3. GLOBAL ENVIRONMENT VARIABLES
+# ============================================
+
+env: # # Variables de entorno globales
+  CI: true
+  TEST_ENV: ${{ github.event.inputs.environment || 'staging' }}
+  VIDEO: ${{ github.event.inputs.video_record || 'false' }}
+
+  # Staging credentials
   STAGING_USER_EMAIL: ${{ secrets.STAGING_USER_EMAIL }}
   STAGING_USER_PASSWORD: ${{ secrets.STAGING_USER_PASSWORD }}
 
-# ============================================
-# 3. JOBS
-# ============================================
-jobs:
-  regression:
-    name: Regresion
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+
+jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipeline de GitHub Actions.
+#Un Job es un conjunto de tareas (Steps) que se ejecutan en una misma máquina virtual o runner.
+#Puedes tener uno o varios Jobs.
+  # ============================================
+  # Job 1: E2E (API FRONTEND)
+  # ============================================
+
+  regression:  # Identificador del Job
+
+    name: Regresion
+    runs-on: ubuntu-latest # Máquina donde se ejecuta #Indica en qué máquina se ejecutará el Job.
+    #Es importante entender que el Job necesita una máquina donde ejecutar sus tareas.
+
+    timeout-minutes: 60
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps: #Aquí defines la lista de pasos que ejecutará esa máquina. Cada Step representa una tarea.
+
+      - name: Checkout  #- 	Indica un nuevo Step
+        uses: actions/checkout@v4  #uses: le indica a GitHub que utilice una Action existente.#actions/checkout: es el nombre de esa Action. #@v4: indica que quieres utilizar la versión 4.
+        with: #Permite configurar parámetros de esa Action
+          fetch-depth: 1  #	Descarga solamente el último commit, sin todo el historial
+
+        # que usede Descarga el código de tu repositorio dentro de la máquina virtual donde se está ejecutando el pipeline.
+        # esas acciones son Action ya creada por GitHub:
+
+        #uses	Utiliza una Action existente.	actions/checkout@v4. Es una acción oficial de GitHub, desarrollada y mantenida por GitHub.
+        #run	Ejecuta un comando en la terminal.	bun install
+
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.2
+          bun-version: latest
 
       - name: Instalar dependencias
-        run: bun install --frozen-lockfile
+        run: bun install #Una vez que tienes Bun instalado, para instalar todas las dependencias de un proyecto debes ejecutar:
 
-      - name: Instalar navegador de Playwright
-        run: bunx playwright install --with-deps chromium
 
-      - name: Correr regresion
-        run: bunx playwright test
+      - name: Validate Test Environment Variables #revisa que estén configuradas las variables de entorno antes de correr los tests
+        run: bun run test:env:check
 
-      - name: Setup Java (requerido por Allure CLI)
-        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      - name: Install Playwright (API context)
+        run: bun run pw:install ## bun run pw:install Bun ejecuta la CLI de Playwright, que descarga Chromium y sus dependencias.
+
+      - name:  Run Integration Tests on ${{ env.TEST_ENV }}
+        run: bun run test:regression
+        #--grep	Selecciona cuáles ejecutar.
 
       - name: Generar reporte Allure
-        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
-        run: npx --yes allure-commandline generate allure-results --clean --single-file -o allure-report
+        if: ${{ !cancelled() }} # condicion para ver si se ejecuta este caso, si el flujo no fue cancelado
+        run: bunx allure-commandline generate allure-results --clean --single-file -o allure-report
+        ##agarra los datos “crudos” que dejaron los tests y los convierte en un reporte lindo y fácil de leer, en un solo archivo HTML.
 
       - name: Subir reporte Allure
-        if: ${{ !cancelled() && env.GENERATE_ALLURE == 'true' }}
-        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4 #upload-artifact. Su función es guardar el reporte como un artefacto descargable de la ejecución.
         with:
           name: allure-report
           path: allure-report

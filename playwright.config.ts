@@ -33,13 +33,21 @@ export default defineConfig({
     timeout: 10000, 
   },
 
-  reporter: [
-    ['list'],
-    ['html', {
-      outputFolder: 'playwright-report',
-      open: 'never',
+  reporter: [ //reporter es una propiedad de configuración de Playwright que permite definir cómo quieres que se muestren y registren los resultados de tus pruebas
+    ['list'], //Muestra en la terminal los tests que se están ejecutando y su resultado.
+    ['html', {//Genera el reporte HTML nativo de Playwright. //indica que quieres generar un reporte HTML.
+      outputFolder: 'playwright-report', // indica en qué carpeta quieres guardar ese reporte. Si no existe, Playwright la crea.
+      open: 'never', // evita que Playwright abra automáticamente el reporte en el navegador.
     }],
-    ['allure-playwright', { resultsDir: 'allure-results' }],
+    ['allure-playwright', { resultsDir: 'allure-results' }], // 'allure-playwright' Le estás indicando a Playwright que utilice el reporter de Allure
+
+    //1. html: quiero que Playwright genere su propio reporte HTML al finalizar la ejecución de los tests.
+    //2. outputFolder: quiero que guarde ese reporte en una carpeta llamada playwright-report. Si no existe, Playwright la crea.
+    //3. open: 'never': no quiero que Playwright abra automáticamente el reporte en el navegador cuando termine la ejecución.
+    //4. allure-playwright: quiero que Playwright genere un reporte Allure al finalizar la ejecución de los tests.
+    //5. resultsDir: quiero que guarde ese reporte en una carpeta llamada allure-results. Si no existe, Playwright la crea.
+
+
   ],
     // GitHub Reporter (optional): Generates annotations in GitHub Actions UI
     // Uncomment to enable inline error annotations in PR file views
@@ -50,9 +58,9 @@ export default defineConfig({
 
   use: {
     baseURL: config.baseUrl,
-    screenshot: 'only-on-failure',
+    screenshot: 'only-on-failure', //Toma una captura cuando falla el test.
     video: config.recordVideo ? 'on' : 'retain-on-failure',
-    trace: 'retain-on-failure',
+    trace: 'retain-on-failure', //Conserva la traza si el test falla.
     viewport: { width: 1920, height: 1080 },
     ignoreHTTPSErrors: true,
    
@@ -78,7 +86,7 @@ export default defineConfig({
       testMatch: /.*\.test\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user-state.json',
+        storageState: config.auth.storageStatePath,
       },
       dependencies: ['ui-setup'],
     },
