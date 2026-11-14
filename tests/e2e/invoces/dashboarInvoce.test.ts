@@ -3,7 +3,7 @@ import {DashboarPage, Status, statuses} from '@ui/DashboarInvocePage';
 
 
 
-test.describe('Dashboard Invoce', () => {
+test.describe('Dashboard Invoce', { tag: '@regression' }, () => {
   
     test.beforeEach(async ({ page }) => {
     await page.goto('/invoices');
