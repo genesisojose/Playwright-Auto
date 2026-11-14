@@ -9,7 +9,7 @@ run-name: ${{ github.actor }} triggered Regression Tests on ${{ github.event.inp
 on:
 
   push:
-    branches: [main]           # en cada push a main
+    branches: [master]         # en cada push a master
 
 
   workflow_dispatch:           # boton "Run workflow" en la pestaña Actions
@@ -27,7 +27,6 @@ on:
         type: choice   #Define el tipo de dato o control.
         options:  #Define las opciones disponibles.
           - staging
-          - production
 
       video_record:
         description: Enable Video Recording
