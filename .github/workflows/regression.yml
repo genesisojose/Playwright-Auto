@@ -184,9 +184,9 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       id-token: write   # verify the deployment origin
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}regression/${{ steps.report-number.outputs.value }}/
+      url: ${{ steps.deploy.outputs.page_url }}e2e/${{ steps.report-number.outputs.value }}/
     env:
-      SUITE: regression  # folder inside gh-pages for this pipeline's reports
+      SUITE: e2e  # folder inside gh-pages for this pipeline's reports
       KEEP_REPORTS: 20
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
@@ -257,13 +257,13 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           # delete the oldest reports of this suite, keep the last KEEP_REPORTS
           ls -d [0-9]* | sort -n | head -n -"${KEEP_REPORTS}" | xargs -r rm -rf
 
-          # site root redirects to the regression reports
+          # site root redirects to this suite's reports
           cat > ../index.html <<EOF
           <!doctype html>
           <meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./regression/">
+          <meta http-equiv="refresh" content="0; url=./${SUITE}/">
           <title>Allure Reports</title>
-          <a href="./regression/">Regression reports</a>
+          <a href="./${SUITE}/">${SUITE} reports</a>
           EOF
 
       - name: Guardar reporte en la rama gh-pages
