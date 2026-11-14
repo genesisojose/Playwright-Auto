@@ -155,3 +155,35 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           path: test-results
           if-no-files-found: ignore
           retention-days: 7
+
+  # ============================================
+  # Job 2: publish the Allure report to GitHub Pages (fixed URL)
+  # ============================================
+  publish-report:
+    name: Publicar reporte Allure
+    needs: regression
+    # Publish even when tests fail (that's when the report matters most), only from master
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # deploy to GitHub Pages
+      id-token: write   # verify the deployment origin
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Descargar reporte Allure
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+
+      - name: Preparar reporte para Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Publicar en GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
