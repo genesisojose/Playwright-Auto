@@ -169,10 +169,8 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
   # ============================================
   # Job 2: publish the Allure report to GitHub Pages with history
-  #   - the gh-pages branch stores every published report: /<SUITE>/<report_number>/
-  #   - report_number is a per-suite counter (1, 2, 3...) saved in /<SUITE>/last-report-number
-  #   - /<SUITE>/ redirects to that suite's latest report
-  #   - only the last KEEP_REPORTS reports per suite are kept
+  # The logic lives in scripts/ci/publish-allure-pages.ts (runnable locally);
+  # this job only prepares inputs, pushes gh-pages and deploys.
   # ============================================
   publish-report:
     name: Publicar reporte Allure
@@ -186,14 +184,12 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       id-token: write   # verify the deployment origin
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}e2e/${{ steps.report-number.outputs.value }}/
+      url: ${{ steps.deploy.outputs.page_url }}${{ env.SUITE }}/${{ steps.publish.outputs.report_number }}/
     env:
       SUITE: e2e  # folder inside gh-pages for this pipeline's reports
-      KEEP_REPORTS: 20
-      PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
     steps:
-      - name: Checkout (allurerc.mjs + dependencias)
+      - name: Checkout (allurerc.mjs + script + dependencias)
         uses: actions/checkout@v7
 
       - name: Checkout gh-pages (reportes anteriores)
@@ -201,6 +197,12 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
         with:
           ref: gh-pages
           path: gh-pages
+
+      - name: Descargar resultados crudos de Allure
+        uses: actions/download-artifact@v8
+        with:
+          name: allure-results
+          path: allure-results
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -210,61 +212,12 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Instalar dependencias (Allure 3)
         run: bun install --frozen-lockfile
 
-      - name: Calcular número de reporte
-        id: report-number
-        run: |
-          # own counter per suite: starts at 1, independent of GitHub's run_number
-          last=$(cat "gh-pages/${SUITE}/last-report-number" 2>/dev/null || echo 0)
-          next=$((last + 1))
-          echo "REPORT_NUMBER=${next}" >> "$GITHUB_ENV"
-          echo "value=${next}" >> "$GITHUB_OUTPUT"
-
-      - name: Descargar resultados crudos de Allure
-        uses: actions/download-artifact@v8
-        with:
-          name: allure-results
-          path: allure-results
-
-      - name: Generar reporte Allure 3 con historial
-        env:
-          # trend history lives in gh-pages; Allure appends this run to it (see allurerc.mjs)
-          ALLURE_HISTORY_PATH: gh-pages/${{ env.SUITE }}/history.jsonl
-        run: |
-          bunx allure generate allure-results --clean \
-            -o "gh-pages/${SUITE}/${REPORT_NUMBER}" \
-            --name "${SUITE} - Report #${REPORT_NUMBER}"
-
-      - name: Actualizar índice y limpiar reportes viejos
-        working-directory: gh-pages
-        run: |
-          cd "${SUITE}"
-
-          # save the counter for the next run
-          echo "${REPORT_NUMBER}" > last-report-number
-
-          # Allure 2 trend folder is no longer used (Allure 3 uses history.jsonl)
-          rm -rf last-history
-
-          # /<SUITE>/ redirects to the suite's latest report
-          cat > index.html <<EOF
-          <!doctype html>
-          <meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./${REPORT_NUMBER}/">
-          <title>Allure Report - ${SUITE}</title>
-          <a href="./${REPORT_NUMBER}/">Latest ${SUITE} report (run #${REPORT_NUMBER})</a>
-          EOF
-
-          # delete the oldest reports of this suite, keep the last KEEP_REPORTS
-          ls -d [0-9]* | sort -n | head -n -"${KEEP_REPORTS}" | xargs -r rm -rf
-
-          # site root redirects to this suite's reports
-          cat > ../index.html <<EOF
-          <!doctype html>
-          <meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./${SUITE}/">
-          <title>Allure Reports</title>
-          <a href="./${SUITE}/">${SUITE} reports</a>
-          EOF
+      - name: Generar reporte con historial
+        id: publish
+        run: >
+          bun scripts/ci/publish-allure-pages.ts
+          --suite "${SUITE}" --results allure-results --pages gh-pages --keep 20
+          --tests-result "${{ needs.regression.result }}"
 
       - name: Guardar reporte en la rama gh-pages
         working-directory: gh-pages
@@ -272,7 +225,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "report: allure ${SUITE} run #${REPORT_NUMBER}"
+          git commit -m "report: allure ${SUITE} #${{ steps.publish.outputs.report_number }}"
           git push origin gh-pages
 
       - name: Preparar sitio para Pages
@@ -283,19 +236,3 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Publicar en GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v5
-
-      - name: Resumen de la corrida
-        env:
-          TESTS_RESULT: ${{ needs.regression.result }}
-        run: |
-          if [ "$TESTS_RESULT" = "success" ]; then status="✅ Passed"; else status="❌ ${TESTS_RESULT}"; fi
-          {
-            echo "## Allure Report - ${SUITE} #${REPORT_NUMBER}"
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| **Tests** | ${status} |"
-            echo "| **Environment** | ${TEST_ENV} |"
-            echo "| **Report** | ${PAGES_URL}/${SUITE}/${REPORT_NUMBER}/ |"
-            echo "| **Latest** | ${PAGES_URL}/${SUITE}/ |"
-          } >> "$GITHUB_STEP_SUMMARY"
