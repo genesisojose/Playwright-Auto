@@ -1,0 +1,3 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","1451","SQ-X00: TC1: Search Invoce by invoce number successfully","e2e","2026-11-14","passed","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","917","UI Setup: authenticate via UI","ui-setup","2026-11-14","passed","2026-11-14","","setup/ui-auth.setup.ts","",""

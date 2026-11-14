@@ -1,0 +1,1 @@
+[{"uid":"9fb46404f88d1489","name":"UI Setup: authenticate via UI","time":{"start":1794696544319,"stop":1794696545236,"duration":917},"status":"passed","severity":"normal"},{"uid":"36e6a9d1f8b54082","name":"SQ-X00: TC1: Search Invoce by invoce number successfully","time":{"start":1794696546046,"stop":1794696547497,"duration":1451},"status":"passed","severity":"normal"}]
