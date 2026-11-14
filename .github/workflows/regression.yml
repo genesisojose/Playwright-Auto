@@ -108,10 +108,10 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: package.json # usa la versión de "packageManager" (misma que local)
 
       - name: Instalar dependencias
-        run: bun install #Una vez que tienes Bun instalado, para instalar todas las dependencias de un proyecto debes ejecutar:
+        run: bun install --frozen-lockfile # falla si bun.lock no coincide con package.json #Una vez que tienes Bun instalado, para instalar todas las dependencias de un proyecto debes ejecutar:
 
 
       - name: Validate Test Environment Variables #revisa que estén configuradas las variables de entorno antes de correr los tests

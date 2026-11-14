@@ -10,3 +10,7 @@ node_modules/
 /allure-report/
 /Estudio
 /.env
+# Bun is the only package manager (bun.lock)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

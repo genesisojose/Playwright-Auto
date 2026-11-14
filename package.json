@@ -2,6 +2,7 @@
   "name": "practica-auto",
   "version": "1.0.0",
   "description": "",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "pw:install": "playwright install --with-deps chromium",
     "test:env:check": "bun config/validateTestEnv.ts",
