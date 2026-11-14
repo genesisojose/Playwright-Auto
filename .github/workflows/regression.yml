@@ -94,7 +94,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
     steps: #Aquí defines la lista de pasos que ejecutará esa máquina. Cada Step representa una tarea.
 
       - name: Checkout  #- 	Indica un nuevo Step
-        uses: actions/checkout@v4  #uses: le indica a GitHub que utilice una Action existente.#actions/checkout: es el nombre de esa Action. #@v4: indica que quieres utilizar la versión 4.
+        uses: actions/checkout@v7  #uses: le indica a GitHub que utilice una Action existente.#actions/checkout: es el nombre de esa Action. #@v7: indica que quieres utilizar la versión 7.
         with: #Permite configurar parámetros de esa Action
           fetch-depth: 1  #	Descarga solamente el último commit, sin todo el historial
 
@@ -131,7 +131,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
       - name: Subir reporte Allure
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4 #upload-artifact. Su función es guardar el reporte como un artefacto descargable de la ejecución.
+        uses: actions/upload-artifact@v7 #upload-artifact. Su función es guardar el reporte como un artefacto descargable de la ejecución.
         with:
           name: allure-report
           path: allure-report
@@ -140,7 +140,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
       - name: Subir reporte HTML de Playwright
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report
@@ -149,7 +149,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
       - name: Subir videos, screenshots y traces
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: test-results
@@ -174,16 +174,16 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
     steps:
       - name: Descargar reporte Allure
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: allure-report
           path: allure-report
 
       - name: Preparar reporte para Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: allure-report
 
       - name: Publicar en GitHub Pages
         id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

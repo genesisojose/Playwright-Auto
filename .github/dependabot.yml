@@ -1,0 +1,21 @@
+# Dependabot opens pull requests when new versions are released.
+# Review and merge them like any other PR: CI runs on them first.
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']   # one PR for all action updates
+
+  # Bun dependencies (package.json + bun.lock)
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dependencies:
+        patterns: ['*']   # one PR for all dependency updates
