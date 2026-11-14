@@ -1,0 +1,8 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","60401","SQ-X00: TC1: Search Invoce by invoce number successfully","e2e","2026-11-14","broken","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","62681","SQ-X00: TC2: filter invoce by status ""Enviado""","e2e","2026-11-14","broken","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","60423","SQ-X00: TC2: Search Invoce by invoce number successfully","e2e","2026-11-14","broken","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","62601","SQ-X00: TC2: filter invoce by status ""Vencida""","e2e","2026-11-14","broken","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","1019","UI Setup: authenticate via UI","ui-setup","2026-11-14","passed","2026-11-14","","setup/ui-auth.setup.ts","",""
+"","62602","SQ-X00: TC2: filter invoce by status ""Borrado""","e2e","2026-11-14","broken","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
+"","1257","SQ-X00: TC2: filter invoce by status ""Pagada""","e2e","2026-11-14","failed","2026-11-14","Dashboard Invoce","e2e/invoces/dashboarInvoce.test.ts","",""
