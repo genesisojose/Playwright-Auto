@@ -120,8 +120,8 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Install Playwright (API context)
         run: bun run pw:install ## bun run pw:install Bun ejecuta la CLI de Playwright, que descarga Chromium y sus dependencias.
 
-      - name:  Run Integration Tests on ${{ env.TEST_ENV }}
-        run: bun run test:regression
+      - name: Run E2E Tests on ${{ env.TEST_ENV }}
+        run: bun run test:e2e
         #--grep	Selecciona cuáles ejecutar.
 
       - name: Generar reporte Allure
@@ -167,9 +167,9 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
 
   # ============================================
   # Job 2: publish the Allure report to GitHub Pages with history
-  #   - the gh-pages branch stores every published report: /<run_number>/
-  #   - the site root redirects to the latest report
-  #   - only the last KEEP_REPORTS reports are kept
+  #   - the gh-pages branch stores every published report: /<SUITE>/<run_number>/
+  #   - /<SUITE>/ redirects to that suite's latest report
+  #   - only the last KEEP_REPORTS reports per suite are kept
   # ============================================
   publish-report:
     name: Publicar reporte Allure
@@ -183,8 +183,9 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       id-token: write   # verify the deployment origin
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}${{ github.run_number }}/
+      url: ${{ steps.deploy.outputs.page_url }}regression/${{ github.run_number }}/
     env:
+      SUITE: regression  # folder inside gh-pages for this pipeline's reports
       KEEP_REPORTS: 20
       RUN_NUMBER: ${{ github.run_number }}
       PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
@@ -205,8 +206,8 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
       - name: Agregar historial y datos de la corrida
         run: |
           # history = trend data from previous reports (feeds the "Trend" charts)
-          if [ -d gh-pages/last-history ]; then
-            cp -r gh-pages/last-history allure-results/history
+          if [ -d "gh-pages/${SUITE}/last-history" ]; then
+            cp -r "gh-pages/${SUITE}/last-history" allure-results/history
           fi
           # executor = links each point of the trend to its own report
           cat > allure-results/executor.json <<EOF
@@ -216,31 +217,42 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
             "buildName": "Run #${RUN_NUMBER}",
             "buildOrder": ${RUN_NUMBER},
             "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportUrl": "${PAGES_URL}/${RUN_NUMBER}/"
+            "reportUrl": "${PAGES_URL}/${SUITE}/${RUN_NUMBER}/"
           }
           EOF
 
       - name: Generar reporte Allure con historial
-        run: npx --yes allure-commandline generate allure-results --clean -o "gh-pages/${RUN_NUMBER}"
+        run: npx --yes allure-commandline generate allure-results --clean -o "gh-pages/${SUITE}/${RUN_NUMBER}"
 
       - name: Actualizar historial, índice y limpiar reportes viejos
         working-directory: gh-pages
         run: |
+          cd "${SUITE}"
+
           # keep the trend data for the next run
           rm -rf last-history
           cp -r "${RUN_NUMBER}/history" last-history
 
-          # site root redirects to the latest report
+          # /<SUITE>/ redirects to the suite's latest report
           cat > index.html <<EOF
           <!doctype html>
           <meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./${RUN_NUMBER}/">
-          <title>Allure Report</title>
-          <a href="./${RUN_NUMBER}/">Latest report (run #${RUN_NUMBER})</a>
+          <title>Allure Report - ${SUITE}</title>
+          <a href="./${RUN_NUMBER}/">Latest ${SUITE} report (run #${RUN_NUMBER})</a>
           EOF
 
-          # delete the oldest reports, keep the last KEEP_REPORTS
+          # delete the oldest reports of this suite, keep the last KEEP_REPORTS
           ls -d [0-9]* | sort -n | head -n -"${KEEP_REPORTS}" | xargs -r rm -rf
+
+          # site root redirects to the regression reports
+          cat > ../index.html <<EOF
+          <!doctype html>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./regression/">
+          <title>Allure Reports</title>
+          <a href="./regression/">Regression reports</a>
+          EOF
 
       - name: Guardar reporte en la rama gh-pages
         working-directory: gh-pages
@@ -248,7 +260,7 @@ jobs: #s el bloque del YAML donde defines los trabajos que debe ejecutar tu pipe
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "report: allure run #${RUN_NUMBER}"
+          git commit -m "report: allure ${SUITE} run #${RUN_NUMBER}"
           git push origin gh-pages
 
       - name: Preparar sitio para Pages

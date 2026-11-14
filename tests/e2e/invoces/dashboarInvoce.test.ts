@@ -10,7 +10,7 @@ test.describe('Dashboard Invoce', { tag: '@regression' }, () => {
   });
 
 
-  test('SQ-X00: TC1: Search Invoce by invoce number successfully', async ({ InvocePage, page, LoginPage}) => {
+  test('SQ-X00: TC1: Search Invoce by invoce number successfully', { tag: '@e2e' }, async ({ InvocePage, page, LoginPage}) => {
 
     const invoiceNumber = "INV-2026-20378341444";
 

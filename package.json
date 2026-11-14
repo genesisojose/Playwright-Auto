@@ -6,7 +6,7 @@
   "scripts": {
     "pw:install": "playwright install --with-deps chromium",
     "test:env:check": "bun config/validateTestEnv.ts",
-    "test:regression": "bunx playwright test --project=e2e --grep @regression"
+    "test:e2e": "bunx playwright test --project=e2e --grep @e2e"
   },
   "main": "index.js",
   "keywords": [],

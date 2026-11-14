@@ -1,4 +1,4 @@
-import  {Page, Locator, Expect} from "@playwright/test"
+import  {Page, Locator, expect} from "@playwright/test"
 
 
 // ============================================
@@ -101,7 +101,12 @@ Resumen: no falta declaración, es que declaración + valor van en la MISMA lín
     //const interceptionEndpoint = await  this.page.waitForResponse(response  => response.url().includes("api/invoices"))
     //Playwright, quédate escuchando todas las respuestas HTTP. Cuando llegue una respuesta cuya URL contenga /api/invoices y además tenga estado 200, guárdala para que yo pueda obtenerla más adelante con await responsePromise.
     //Empieza a escuchar la respuesta antes de realizar la acción
-    const responsePromise =  this.page.waitForResponse(response =>response.url().includes('/api/invoices') && response.status() === 200);
+    // Match only the search request: other calls also contain '/api/invoices'
+    // (initial load, '/api/invoices/dashboard') and would resolve this wait too early
+    const responsePromise = this.page.waitForResponse(response =>
+      response.url().includes('/api/invoices?search=')
+      && response.url().includes(encodeURIComponent(searchValue))
+      && response.status() === 200);
     // Esta acción dispara la petición al backend
     await searchBarInput.fill(searchValue)
     // Espera a que la promesa responsePromise termine.
@@ -115,7 +120,9 @@ Resumen: no falta declaración, es que declaración + valor van en la MISMA lín
 
   async searchExistingInvoce(searchValue: string) {
     const invoces = await this.searchInvoce(searchValue);
-      
+    // Wait until the table re-renders with the search result before anyone reads the rows
+    await expect(this.rows.first()).toContainText(searchValue);
+    return invoces;
   }
 
 
